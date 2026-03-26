@@ -1,6 +1,4 @@
 # 🚀 My College Life — AI-Powered Student Companion  
-### Built for FossHack 2025
-
 
 ## 📌 Project Overview  
 
@@ -34,27 +32,37 @@ These challenges lead to poor productivity, stress, and lack of organization.
 ### 🌍 AI Travel Planner  
 - Personalized itineraries  
 - Budget-friendly recommendations  
-- Local attractions & travel insights  
+- Local attractions & travel insights
+
+---
 
 ### 💰 Smart Finance Tracker  
 - Expense logging  
 - Monthly budget tracking  
-- Visual analytics & insights  
+- Visual analytics & insights
+
+--- 
 
 ### 📚 Academic Portfolio Builder  
 - Showcase projects, certifications, and skills  
 - Clean, professional format  
-- Easy sharing  
+- Easy sharing
+
+---  
 
 ### ✅ Intelligent Task Manager  
 - Task prioritization  
 - Deadlines & reminders  
-- Workflow management  
+- Workflow management
+
+---
 
 ### 🤖 AI Study Assistant  
 - Instant doubt solving  
 - Notes summarization  
 - Learning support  
+
+---
 
 ### 🔐 Secure Authentication  
 - User login & registration  
