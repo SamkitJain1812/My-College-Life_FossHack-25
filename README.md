@@ -130,9 +130,3 @@ These challenges lead to poor productivity, stress, and lack of organization.
 ## 📜 License  
 
 This project is licensed under the MIT License.
-
----
-
-## 📬 Contact  
-
-📧 samkitjain1812@gmail.com
