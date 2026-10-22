@@ -1,0 +1,43 @@
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: string;
+  label?: string;
+}
+
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type = "text", error, label, id, ...props }, ref) => {
+    const generatedId = React.useId();
+    const inputId = id || generatedId;
+
+    return (
+      <div className="w-full space-y-1.5">
+        {label && (
+          <label
+            htmlFor={inputId}
+            className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            {label}
+          </label>
+        )}
+        <input
+          id={inputId}
+          type={type}
+          ref={ref}
+          className={cn(
+            "flex h-10 w-full rounded-lg border border-input bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50",
+            error && "border-danger focus-visible:ring-danger",
+            className
+          )}
+          {...props}
+        />
+        {error && (
+          <p className="text-xs text-danger font-medium animate-fade-in">{error}</p>
+        )}
+      </div>
+    );
+  }
+);
+Input.displayName = "Input";

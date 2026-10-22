@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 45% 98%;
+    --foreground: 222 47% 11%;
+
+    --surface: 0 0% 100%;
+    --surface-foreground: 222 47% 11%;
+    --surface-muted: 225 30% 96%;
+
+    /* Stitch Brand Violet */
+    --primary: 243 100% 68%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 244 80% 60%;
+
+    --secondary: 228 33% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 225 25% 95%;
+    --muted-foreground: 220 16% 50%;
+
+    --accent: 243 100% 97%;
+    --accent-foreground: 243 100% 55%;
+
+    --border: 225 25% 92%;
+    --input: 225 25% 92%;
+    --ring: 243 100% 68%;
+
+    --radius: 0.85rem;
+
+    /* Stitch Semantic Colors */
+    --success: 160 100% 41%;
+    --success-foreground: 0 0% 100%;
+    --success-surface: 162 65% 95%;
+
+    --warning: 35 100% 55%;
+    --warning-foreground: 25 90% 15%;
+    --warning-surface: 38 100% 96%;
+
+    --danger: 0 100% 65%;
+    --danger-foreground: 0 0% 100%;
+    --danger-surface: 0 100% 97%;
+  }
+
+  .dark {
+    --background: 226 35% 7%;
+    --foreground: 210 40% 98%;
+
+    --surface: 226 29% 12%;
+    --surface-foreground: 210 40% 98%;
+    --surface-muted: 226 25% 16%;
+
+    --primary: 243 100% 72%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 243 100% 66%;
+
+    --secondary: 226 25% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 226 25% 18%;
+    --muted-foreground: 220 16% 65%;
+
+    --accent: 243 45% 22%;
+    --accent-foreground: 243 100% 88%;
+
+    --border: 226 22% 20%;
+    --input: 226 22% 20%;
+    --ring: 243 100% 72%;
+
+    --success: 160 85% 45%;
+    --success-foreground: 0 0% 100%;
+    --success-surface: 160 50% 14%;
+
+    --warning: 35 100% 55%;
+    --warning-foreground: 38 100% 96%;
+    --warning-surface: 35 50% 14%;
+
+    --danger: 0 100% 65%;
+    --danger-foreground: 0 0% 100%;
+    --danger-surface: 0 50% 14%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    min-height: 100vh;
+  }
+}
+
+/* Stitch Gradient Badges & Accents */
+.stitch-gradient {
+  background: linear-gradient(135deg, #635bff 0%, #7c69ff 100%);
+}
+
+.stitch-gradient-hover:hover {
+  background: linear-gradient(135deg, #5046e5 0%, #6854f7 100%);
+}
+
+/* Print Stylesheet for Academic Portfolio PDF Export */
+@media print {
+  aside,
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  body, main {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1.5cm !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .print-break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
