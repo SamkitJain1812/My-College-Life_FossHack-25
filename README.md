@@ -1,132 +1,152 @@
-# 🚀 My College Life — AI-Powered Student Companion  
+# My College Life
 
-## 📌 Project Overview  
+An AI-powered student companion for managing college life in one place. My College Life combines study support, travel planning, personal finance, tasks, and an academic portfolio in a responsive Next.js application.
 
-**My College Life** is an AI-powered web platform designed to simplify and enhance the everyday life of college students. It acts as a **centralized digital companion** that helps students manage academics, finances, travel, and productivity — all in one place.
+## Overview
 
-Built with a focus on **automation, personalization, and usability**, the platform leverages AI to provide smart recommendations, actionable insights, and seamless workflows.
+College students often switch between separate tools for assignments, spending, trip planning, notes, and career materials. My College Life brings these workflows together with a student-focused dashboard and AI assistance.
 
----
+All personal application data is stored locally in the browser using `localStorage`. Gemini requests are handled only by server-side Next.js route handlers, so the API key is never sent to the client.
 
-## 🎯 Problem Statement  
+## Features
 
-College students often struggle with:
-- Managing academic workload  
-- Tracking expenses  
-- Planning trips within budget  
-- Staying consistent with tasks  
-- Accessing quick academic help  
+- **Dashboard**
+  - Monthly spending versus budget
+  - Tasks due today and overdue tasks
+  - Latest saved trip
+  - Portfolio completeness
+  - Quick actions for every feature
+- **AI Travel Planner**
+  - Student-budget-friendly itineraries
+  - Structured day-by-day plans
+  - Estimated costs and travel tips
+- **Finance Tracker**
+  - Expense logging and editing
+  - Monthly budget tracking in Indian rupees
+  - Category breakdown and spending trends
+  - CSV export
+- **Task Manager**
+  - Task creation, priorities, due dates, and statuses
+  - Overdue task visibility
+- **Academic Portfolio**
+  - Projects, certifications, skills, and education
+  - Profile completeness tracking
+- **AI Study Assistant**
+  - Streaming doubt-solving responses
+  - Notes summarization mode
+  - Markdown-style answer rendering
+  - Copy answers and save chat history locally
+- **Settings and backup**
+  - Export and restore local application data as JSON
+  - Reset local data when needed
+- **Theme support**
+  - Responsive layouts for mobile, tablet, and desktop
+  - Light and dark themes
 
-These challenges lead to poor productivity, stress, and lack of organization.
+## Tech Stack
 
----
+- **Framework:** Next.js App Router
+- **Language:** TypeScript
+- **UI:** React and Tailwind CSS
+- **Icons and charts:** Lucide React and Recharts
+- **AI:** Google Gemini API through the official `@google/genai` SDK
+- **Validation:** Zod
+- **Persistence:** Browser `localStorage`
+- **Deployment:** Vercel-compatible Next.js application
 
-## 💡 Solution  
+## Setup
 
-**My College Life** solves these problems by integrating multiple essential tools with AI capabilities into one unified platform.
+### Prerequisites
 
----
+- Node.js 18 or newer
+- npm
+- A Google Gemini API key for AI features
 
-## 🔥 Key Features  
+### Install and run
 
-### 🌍 AI Travel Planner  
-- Personalized itineraries  
-- Budget-friendly recommendations  
-- Local attractions & travel insights
+```bash
+git clone https://github.com/SamkitJain1812/My-College-Life_FossHack-25.git
+cd My-College-Life_FossHack-25
+npm install
+copy .env.example .env.local
+npm run dev
+```
 
----
+On macOS or Linux, use `cp .env.example .env.local` instead of the Windows `copy` command.
 
-### 💰 Smart Finance Tracker  
-- Expense logging  
-- Monthly budget tracking  
-- Visual analytics & insights
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
---- 
+### Verify the project
 
-### 📚 Academic Portfolio Builder  
-- Showcase projects, certifications, and skills  
-- Clean, professional format  
-- Easy sharing
+```bash
+npm run lint
+node ./node_modules/typescript/bin/tsc --noEmit
+npm run build
+```
 
----  
+## Environment Variables
 
-### ✅ Intelligent Task Manager  
-- Task prioritization  
-- Deadlines & reminders  
-- Workflow management
+Create a `.env.local` file in the project root. It is ignored by Git and must never be committed.
 
----
+```env
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-3.8-flash
+```
 
-### 🤖 AI Study Assistant  
-- Instant doubt solving  
-- Notes summarization  
-- Learning support  
+| Variable | Required | Description |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | Yes for AI features | Server-side Google Gemini API key |
+| `GEMINI_MODEL` | No | Gemini model name; defaults to `gemini-3.8-flash` |
 
----
+The API key is consumed by [`lib/api.ts`](./lib/api.ts) and the route handlers under [`app/api/`](./app/api/). Do not prefix it with `NEXT_PUBLIC_`.
 
-### 🔐 Secure Authentication  
-- User login & registration  
-- Password hashing using bcrypt  
-- Data protection  
+## Project Structure
 
----
+```text
+app/
+  api/
+    study/route.ts       # Streaming study assistant endpoint
+    travel/route.ts      # Structured travel planner endpoint
+  dashboard/             # Data-driven dashboard
+  finance/               # Finance tracker
+  portfolio/             # Academic portfolio
+  study/                 # Study assistant UI
+  tasks/                 # Task manager
+  travel/                # Travel planner UI
+  settings/              # Backup and local data settings
+components/              # Shared application and UI components
+lib/
+  api.ts                 # Server-side Gemini and API utilities
+  storage.ts             # Typed localStorage helpers
+  types.ts               # Shared domain types
+```
 
-## 🛠️ Tech Stack  
+## Data and Privacy
 
-### Frontend  
-- HTML, CSS, JavaScript  
-- React.js  
+Application records remain in the browser's local storage. There is no login system or external application database. AI requests are sent to the server route handlers, which use `GEMINI_API_KEY` without exposing it to client-side code.
 
-### Backend  
-- Node.js  
-- Express.js  
+Do not commit:
 
-### Database  
-- MongoDB  
+- `.env.local`
+- `.env`
+- Any file containing a real API key
 
-### AI Integration  
-- AI APIs  
+## Future Scope
 
-### Authentication  
-- bcrypt.js  
+- Native Android and iOS applications
+- AI career guidance and internship recommendations
+- Smart timetable and study-plan generation
+- Calendar and reminder integrations
+- Collaborative study sessions
+- More granular privacy and data portability controls
 
----
+## Contributors
 
-## 🌐 Deployment  
+- Samkit Jain
+- Moksh Sharma
+- Madhav Singla
+- Mayank Verma
 
-- Frontend: Vercel  
-- Backend: Node.js server  
-- Database: MongoDB  
+## License
 
----
-
-## 👥 Contributors  
-
-- Samkit Jain  
-- Moksh Sharma  
-- Madhav Singla  
-- Mayank Verma  
-
----
-
-## 🔗 Useful Links  
-
-- 🌐 [Live Prototype](https://v0-my-college-life-sxmzdh.vercel.app/#features)  
-- 🤖 [AI Tool](https://roamai.zapier.app/)  
-- 📂 [GitHub Repo](https://github.com/SamkitJain1812/My-College-Life_FossHack-25)  
-
----
-
-## 📈 Future Scope  
-
-- Mobile App (Android/iOS)  
-- AI Career Guidance  
-- Internship Recommendations  
-- Smart Timetable Generator  
-- Collaboration Features  
-
----
-
-## 📜 License  
-
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](./LICENSE).

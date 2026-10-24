@@ -92,17 +92,18 @@ export function useLocalStorage<T>(
 ): [T, (valOrUpdater: T | ((prev: T) => T)) => void, boolean] {
   const [state, setState] = React.useState<T>(defaultValue);
   const [isHydrated, setIsHydrated] = React.useState<boolean>(false);
+  const defaultValueRef = React.useRef(defaultValue);
 
   // Sync with localStorage on client mount
   React.useEffect(() => {
-    const stored = storage.get<T>(key, defaultValue);
+    const stored = storage.get<T>(key, defaultValueRef.current);
     setState(stored);
     setIsHydrated(true);
 
     const handleStorageChange = (e: Event) => {
       const customEvent = e as CustomEvent<{ key: string; value: unknown }>;
       if (!customEvent.detail || customEvent.detail.key === key) {
-        setState(storage.get<T>(key, defaultValue));
+        setState(storage.get<T>(key, defaultValueRef.current));
       }
     };
 
@@ -113,7 +114,7 @@ export function useLocalStorage<T>(
       window.removeEventListener("local-storage-change", handleStorageChange);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [key, defaultValue]);
+  }, [key]);
 
   const setLocalStorageValue = React.useCallback(
     (valOrUpdater: T | ((prev: T) => T)) => {
@@ -137,7 +138,7 @@ export function useLocalStorage<T>(
  */
 export const defaultBudget: Budget = {
   monthlyLimit: 650,
-  currency: "$",
+  currency: "₹",
   month: "2024-10",
   savingsGoal: 150,
 };

@@ -11,9 +11,37 @@ const fontSans = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+
 export const metadata: Metadata = {
-  title: "College Life - AI Student Companion",
-  description: "Your all-in-one AI student companion for academics, tasks, finance, and travel.",
+  metadataBase: new URL(deploymentHost ? `https://${deploymentHost}` : "http://localhost:3000"),
+  title: {
+    default: "My College Life | AI Student Companion",
+    template: "%s | My College Life",
+  },
+  description: "Your all-in-one AI student companion for academics, tasks, finance, travel, and your portfolio.",
+  applicationName: "My College Life",
+  generator: "Next.js",
+  keywords: ["college life", "student companion", "study assistant", "travel planner", "finance tracker"],
+  authors: [{ name: "My College Life Contributors" }],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "My College Life",
+    title: "My College Life | AI Student Companion",
+    description: "Plan, learn, organize, and grow with one student-focused companion.",
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "My College Life AI student companion" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "My College Life | AI Student Companion",
+    description: "Plan, learn, organize, and grow with one student-focused companion.",
+    images: ["/og-image.svg"],
+  },
 };
 
 export default function RootLayout({

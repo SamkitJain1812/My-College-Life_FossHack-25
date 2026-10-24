@@ -61,12 +61,13 @@ export default function TravelPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                <label htmlFor="starting-city" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Starting From <span className="text-slate-400 font-normal lowercase">(Campus Hub)</span>
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
                   <input
+                    id="starting-city"
                     type="text"
                     defaultValue="San Francisco, CA"
                     className="w-full h-10 pl-10 pr-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-border text-xs sm:text-sm font-semibold"
@@ -75,12 +76,13 @@ export default function TravelPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                <label htmlFor="destination" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Destination
                 </label>
                 <div className="relative">
                   <Compass className="absolute left-3.5 top-3 h-4 w-4 text-[#635BFF]" />
                   <input
+                    id="destination"
                     type="text"
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
@@ -94,7 +96,7 @@ export default function TravelPage() {
                     <button
                       key={city}
                       onClick={() => setDestination(`${city}, CA`)}
-                      className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-[#635BFF]/10 hover:text-[#635BFF] dark:bg-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
+                      className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-[#635BFF]/10 hover:text-[#635BFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635BFF] dark:bg-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
                     >
                       {city}
                     </button>
@@ -115,7 +117,7 @@ export default function TravelPage() {
                         selectedDuration === dur
                           ? "bg-[#635BFF] text-white shadow-xs"
                           : "bg-slate-50 dark:bg-slate-900 border border-border text-slate-600 dark:text-slate-300 hover:bg-slate-100"
-                      }`}
+                      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635BFF]`}
                     >
                       {dur}
                     </button>
@@ -125,7 +127,7 @@ export default function TravelPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <label htmlFor="trip-budget" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Target Budget
                   </label>
                   <div className="flex items-center gap-2">
@@ -136,7 +138,9 @@ export default function TravelPage() {
                   </div>
                 </div>
                 <input
+                  id="trip-budget"
                   type="range"
+                  aria-label="Target trip budget"
                   min="100"
                   max="500"
                   step="10"

@@ -252,7 +252,7 @@ export default function FinancePage() {
       );
       toast({
         title: "Expense Updated",
-        description: `Updated "${descInput.trim()}" ($${parsedAmount.toFixed(2)})`,
+        description: `Updated "${descInput.trim()}" (₹${parsedAmount.toFixed(2)})`,
         variant: "success",
       });
     } else {
@@ -270,7 +270,7 @@ export default function FinancePage() {
       setExpenses((prev) => [newExpense, ...prev]);
       toast({
         title: "Expense Logged",
-        description: `Added $${parsedAmount.toFixed(2)} to ${categoryInput}`,
+        description: `Added ₹${parsedAmount.toFixed(2)} to ${categoryInput}`,
         variant: "success",
       });
     }
@@ -299,7 +299,7 @@ export default function FinancePage() {
     setIsBudgetModalOpen(false);
     toast({
       title: "Budget Updated",
-      description: `New monthly limit set to $${parsed.toFixed(2)}`,
+      description: `New monthly limit set to ₹${parsed.toFixed(2)}`,
       variant: "success",
     });
   };
@@ -406,7 +406,7 @@ export default function FinancePage() {
             </button>
           </div>
           <div className="text-3xl font-black text-slate-900 dark:text-white">
-            ${budget.monthlyLimit.toFixed(2)}
+            ₹{budget.monthlyLimit.toFixed(2)}
           </div>
           <p className="text-xs text-slate-400 mt-1">allocated for this month</p>
         </Card>
@@ -418,7 +418,7 @@ export default function FinancePage() {
             <span className="h-2 w-2 rounded-full bg-[#FF5252]" />
           </div>
           <div className="text-3xl font-black text-[#FF5252]">
-            ${totalSpent.toFixed(2)}
+            ₹{totalSpent.toFixed(2)}
           </div>
           <p className="text-xs text-slate-400 mt-1">
             {currentMonthExpenses.length} transactions recorded
@@ -434,12 +434,12 @@ export default function FinancePage() {
             <span className={`h-2 w-2 rounded-full ${isOverBudget ? "bg-[#FF5252]" : "bg-[#00D287]"}`} />
           </div>
           <div className={`text-3xl font-black ${isOverBudget ? "text-[#FF5252]" : "text-[#00D287]"}`}>
-            ${Math.abs(remainingCash).toFixed(2)}
+            ₹{Math.abs(remainingCash).toFixed(2)}
           </div>
           <p className={`text-xs font-semibold mt-1 ${isOverBudget ? "text-[#FF5252]" : "text-[#00D287]"}`}>
             {isOverBudget
               ? "Exceeded budget limit"
-              : `$${(remainingCash / 8).toFixed(2)}/day left • 8 days remaining`}
+              : `₹${(remainingCash / 8).toFixed(2)}/day left • 8 days remaining`}
           </p>
         </Card>
       </div>
@@ -448,7 +448,7 @@ export default function FinancePage() {
       <Card className="p-5 rounded-3xl bg-white dark:bg-surface border-border shadow-xs space-y-3">
         <div className="flex items-center justify-between text-xs font-bold">
           <span className="text-slate-600 dark:text-slate-300">
-            Monthly Budget Runway: <strong>{budgetPercentage}% used</strong> (${totalSpent.toFixed(2)} of ${budget.monthlyLimit.toFixed(2)})
+            Monthly Budget Runway: <strong>{budgetPercentage}% used</strong> (₹{totalSpent.toFixed(2)} of ₹{budget.monthlyLimit.toFixed(2)})
           </span>
           <span className={isHighBudgetWarning ? "text-[#FF5252] font-black" : "text-[#00D287]"}>
             {isOverBudget ? "OVER BUDGET" : `${Math.max(0, 100 - budgetPercentage)}% remaining`}
@@ -509,7 +509,7 @@ export default function FinancePage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Tooltip
-                      formatter={(val: any) => [`$${Number(val || 0).toFixed(2)}`, "Spent"]}
+                      formatter={(val: any) => [`₹${Number(val || 0).toFixed(2)}`, "Spent"]}
                       contentStyle={{
                         backgroundColor: "#1E293B",
                         borderRadius: "12px",
@@ -537,7 +537,7 @@ export default function FinancePage() {
                 {/* Center Label */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-xl font-black text-slate-900 dark:text-white">
-                    ${totalSpent.toFixed(0)}
+                    ₹{totalSpent.toFixed(0)}
                   </span>
                   <span className="text-[10px] uppercase font-bold text-slate-400">Total</span>
                 </div>
@@ -559,7 +559,7 @@ export default function FinancePage() {
                         </span>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="font-bold text-slate-900 dark:text-white">${cat.value.toFixed(2)}</span>
+                        <span className="font-bold text-slate-900 dark:text-white">₹{cat.value.toFixed(2)}</span>
                         <span className="text-[10px] text-slate-400 ml-1 font-semibold">({pct}%)</span>
                       </div>
                     </div>
@@ -577,7 +577,7 @@ export default function FinancePage() {
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-[#635BFF]" /> Monthly Spend Trend
               </h2>
-              <p className="text-xs text-slate-400">Quarterly comparison vs $650 budget cap</p>
+              <p className="text-xs text-slate-400">Quarterly comparison vs ₹650 budget cap</p>
             </div>
           </div>
 
@@ -587,7 +587,7 @@ export default function FinancePage() {
                 <XAxis dataKey="month" stroke="#94A3B8" fontSize={11} tickLine={false} />
                 <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} />
                 <Tooltip
-                  formatter={(val: any) => [`$${Number(val || 0).toFixed(2)}`, "Total Spend"]}
+                  formatter={(val: any) => [`₹${Number(val || 0).toFixed(2)}`, "Total Spend"]}
                   contentStyle={{
                     backgroundColor: "#1E293B",
                     borderRadius: "12px",
@@ -603,7 +603,7 @@ export default function FinancePage() {
           </div>
           <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-border/60">
             <span>• Purple: Actual Monthly Spend</span>
-            <span className="text-[#FF5252]">• Dashed Red: Budget Cap ($650)</span>
+            <span className="text-[#FF5252]">• Dashed Red: Budget Cap (₹650)</span>
           </div>
         </Card>
       </div>
@@ -687,7 +687,7 @@ export default function FinancePage() {
                         💳 {tx.paymentMethod || "Debit Card"}
                       </td>
                       <td className="py-3.5 px-3 text-right font-black text-sm text-[#FF5252]">
-                        -${tx.amount.toFixed(2)}
+                        -₹{tx.amount.toFixed(2)}
                       </td>
                       <td className="py-3.5 px-3 text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -736,10 +736,10 @@ export default function FinancePage() {
 
           <div>
             <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Amount Spent ($)
+              Amount Spent (₹)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-2.5 font-bold text-xl text-[#635BFF]">$</span>
+              <span className="absolute left-3.5 top-2.5 font-bold text-xl text-[#635BFF]">₹</span>
               <input
                 type="number"
                 step="0.01"
@@ -861,10 +861,10 @@ export default function FinancePage() {
         <form onSubmit={handleSaveBudget} className="space-y-4 pt-2">
           <div>
             <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Monthly Limit ($)
+              Monthly Limit (₹)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-2.5 font-bold text-xl text-[#635BFF]">$</span>
+              <span className="absolute left-3.5 top-2.5 font-bold text-xl text-[#635BFF]">₹</span>
               <input
                 type="number"
                 step="10"

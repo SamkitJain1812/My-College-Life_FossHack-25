@@ -1,301 +1,189 @@
 "use client";
 
 import * as React from "react";
-import {
-  Bot,
-  Sparkles,
-  Send,
-  Paperclip,
-  Mic,
-  Copy,
-  RotateCcw,
-  Plus,
-  BookOpen,
-  Code2,
-  FileText,
-  HelpCircle,
-  CheckCircle2,
-  Trash2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bot, Copy, FileText, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { STORAGE_KEYS, storage, useLocalStorage } from "@/lib/storage";
+import type { ChatMessage, ChatSession } from "@/lib/types";
+
+type StudyMode = "doubt" | "summarize";
+type DisplayMessage = Pick<ChatMessage, "role" | "content" | "timestamp">;
+
+const starters = [
+  "Explain Dijkstra's Algorithm with a simple analogy",
+  "Help me understand this concept step by step",
+  "Create five practice questions for my next quiz",
+  "Review my answer and point out any gaps",
+];
+
+function createId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function MarkdownText({ content }: { content: string }) {
+  const blocks = content.split(/\n{2,}/);
+  return (
+    <div className="space-y-3 text-sm leading-6">
+      {blocks.map((block, index) => {
+        const lines = block.split("\n");
+        const isList = lines.every((line) => /^[-*]\s/.test(line.trim()));
+        if (isList) {
+          return (
+            <ul key={index} className="list-disc space-y-1 pl-5">
+              {lines.map((line) => <li key={line}>{formatInline(line.replace(/^[-*]\s/, ""))}</li>)}
+            </ul>
+          );
+        }
+        if (/^#{1,3}\s/.test(lines[0])) {
+          return <h3 key={index} className="font-extrabold text-slate-900 dark:text-white">{formatInline(lines[0].replace(/^#{1,3}\s/, ""))}</h3>;
+        }
+        return <p key={index}>{lines.map((line, lineIndex) => <React.Fragment key={`${line}-${lineIndex}`}>{lineIndex > 0 && <br />}{formatInline(line)}</React.Fragment>)}</p>;
+      })}
+    </div>
+  );
+}
+
+function formatInline(value: string): React.ReactNode {
+  const parts = value.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith("`") && part.endsWith("`")) return <code key={index} className="rounded bg-slate-200 px-1.5 py-0.5 text-[.9em] dark:bg-slate-800">{part.slice(1, -1)}</code>;
+    return part;
+  });
+}
 
 export default function StudyPage() {
-  const [messages, setMessages] = React.useState<Array<{ role: "user" | "assistant"; text: string }>>([
-    {
-      role: "user",
-      text: "Can you explain the difference between Process and Thread in Operating Systems? I have a quiz in 2 hours!",
-    },
-  ]);
+  const [sessions, setSessions] = useLocalStorage<ChatSession[]>(STORAGE_KEYS.CHAT_SESSIONS, []);
+  const [messages, setMessages] = React.useState<DisplayMessage[]>([]);
+  const [mode, setMode] = React.useState<StudyMode>("doubt");
   const [input, setInput] = React.useState("");
+  const [notes, setNotes] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [copied, setCopied] = React.useState("");
+  const [hydrated, setHydrated] = React.useState(false);
+  const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    const userMsg = input.trim();
-    setMessages((prev) => [...prev, { role: "user", text: userMsg }]);
+  React.useEffect(() => {
+    if (!hydrated) {
+      const latest = [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+      setActiveSessionId(latest?.id ?? null);
+      setMessages(latest?.messages.filter((message) => message.role !== "system").map(({ role, content, timestamp }) => ({ role, content, timestamp })) ?? []);
+      setHydrated(true);
+    }
+  }, [hydrated, sessions]);
+
+  const persistMessages = React.useCallback((nextMessages: DisplayMessage[]) => {
+    const now = new Date().toISOString();
+    const existing = sessions.find((session) => session.id === activeSessionId);
+    const sessionId = existing?.id ?? createId();
+    const session: ChatSession = {
+      id: sessionId,
+      title: nextMessages.find((message) => message.role === "user")?.content.slice(0, 45) || "New study chat",
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      messages: nextMessages.map((message) => ({ ...message, id: createId(), sessionId, timestamp: message.timestamp || now })),
+    };
+    setSessions((current) => [session, ...current.filter((item) => item.id !== session.id)].slice(0, 20));
+    setActiveSessionId(sessionId);
+  }, [activeSessionId, sessions, setSessions]);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const text = (mode === "summarize" ? notes : input).trim();
+    if (!text || isLoading) return;
+    setError("");
+    const now = new Date().toISOString();
+    const userMessage: DisplayMessage = { role: "user", content: text, timestamp: now };
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setInput("");
+    if (mode === "summarize") setNotes("");
+    setIsLoading(true);
 
-    // Simulate AI response preview
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: `Here is a high-yield summary for "${userMsg}":\n\n• Core Concept: Always remember the boundary separation.\n• Key Exam Formula / Theorem: Practice active recall on this topic before your quiz.`,
-        },
-      ]);
-    }, 600);
+    try {
+      const response = await fetch("/api/study", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, messages: nextMessages.map(({ role, content }) => ({ role, content })) }),
+      });
+      if (!response.ok || !response.body) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error || "Unable to reach the study assistant.");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let answer = "";
+      const assistantMessage: DisplayMessage = { role: "assistant", content: "", timestamp: new Date().toISOString() };
+      setMessages([...nextMessages, assistantMessage]);
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        answer += decoder.decode(chunk.value, { stream: true });
+        setMessages([...nextMessages, { ...assistantMessage, content: answer }]);
+      }
+      const finalMessages = [...nextMessages, { ...assistantMessage, content: answer || "The assistant returned an empty response." }];
+      setMessages(finalMessages);
+      persistMessages(finalMessages);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
+      setMessages(nextMessages);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    setActiveSessionId(null);
+    setError("");
+    setSessions([]);
+    storage.remove(STORAGE_KEYS.CHAT_SESSIONS);
+  };
+
+  const copyAnswer = async (content: string) => {
+    await navigator.clipboard.writeText(content);
+    setCopied(content);
+    window.setTimeout(() => setCopied(""), 1500);
   };
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            AI Study Assistant 🤖
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Ask homework doubts, summarize syllabus lectures, and prepare for exams
-          </p>
+          <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#635BFF]"><Sparkles className="h-3.5 w-3.5" /> AI learning companion</div>
+          <h1 className="flex items-center gap-2.5 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">AI Study Assistant <span aria-hidden>🤖</span></h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Ask questions, summarize notes, and prepare with confidence.</p>
         </div>
-
-        <div className="flex items-center gap-2.5">
-          <Button size="sm" className="rounded-xl bg-[#635BFF] hover:bg-[#5046E5] text-white gap-1.5 font-bold text-xs shadow-sm shadow-[#635BFF]/25">
-            <Sparkles className="h-3.5 w-3.5" /> Solve Doubt
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-xl gap-1.5 font-semibold text-xs">
-            <FileText className="h-3.5 w-3.5" /> Summarize Notes
-          </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setMode("doubt")} size="sm" className={`rounded-xl gap-1.5 text-xs font-bold ${mode === "doubt" ? "bg-[#635BFF] text-white" : "bg-white text-slate-600"}`}><Sparkles className="h-3.5 w-3.5" /> Solve doubt</Button>
+          <Button onClick={() => setMode("summarize")} variant="outline" size="sm" className={`rounded-xl gap-1.5 text-xs font-bold ${mode === "summarize" ? "border-[#635BFF] text-[#635BFF]" : ""}`}><FileText className="h-3.5 w-3.5" /> Summarize notes</Button>
         </div>
-      </div>
+      </header>
 
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left Column: Sessions & Syllabus Sync (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
-          <Button className="w-full h-11 rounded-2xl bg-[#635BFF] hover:bg-[#5046E5] text-white font-bold text-xs gap-2 shadow-xs">
-            <Plus className="h-4 w-4" /> New Chat
-          </Button>
-
-          <Card className="p-4 rounded-3xl bg-white dark:bg-surface border-border shadow-xs space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Recent Sessions</span>
-              <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">5</span>
-            </div>
-
-            <div className="space-y-1">
-              {[
-                { title: "OS Process vs Thread", tag: "Now", desc: "Operating Systems quick revision" },
-                { title: "CS 106B Binary Search Trees", tag: "Today", desc: "AVL rotations & balance factor proofs" },
-                { title: "ECON 101 Oligopoly Prep", tag: "Yesterday", desc: "Game theory Nash equilibrium" },
-                { title: "Physics 21 Gauss's Law", tag: "Oct 21", desc: "Flux through spherical shell" },
-                { title: "Bio 103 Cellular Respiration", tag: "Oct 18", desc: "Krebs cycle ATP breakdown" },
-              ].map((sess, idx) => (
-                <div
-                  key={sess.title}
-                  className={`p-3 rounded-2xl cursor-pointer transition-all ${
-                    idx === 0
-                      ? "bg-[#635BFF]/10 dark:bg-[#635BFF]/20 text-[#635BFF]"
-                      : "hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="truncate">{sess.title}</span>
-                    <span className="text-[10px] text-slate-400 font-normal">{sess.tag}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{sess.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Syllabus Sync status */}
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-border text-xs space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-[#635BFF]">
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#00D287]" /> Syllabus Synced
-              </div>
-              <p className="text-[11px] text-slate-500 leading-tight">
-                Calibrated for Stanford Spring &apos;25 Computer Science curriculum.
-              </p>
-            </div>
-
-            <div className="pt-2 text-center">
-              <button className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center gap-1.5 mx-auto">
-                <Trash2 className="h-3.5 w-3.5" /> Clear chat history
-              </button>
-            </div>
+        <aside className="space-y-4 lg:col-span-4">
+          <Button onClick={() => { setMessages([]); setActiveSessionId(null); setError(""); }} className="h-11 w-full rounded-2xl bg-[#635BFF] font-bold text-white"><Plus className="mr-2 h-4 w-4" /> New chat</Button>
+          <Card className="rounded-3xl border-border bg-white p-4 shadow-xs dark:bg-surface">
+            <div className="mb-3 flex items-center justify-between px-1"><span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Recent chats</span><Badge size="sm">{sessions.length}</Badge></div>
+            {sessions.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-xs text-slate-500 dark:bg-slate-900">Your saved study chats will appear here.</p> : <div className="space-y-1">{sessions.slice(0, 6).map((session) => <button key={session.id} onClick={() => { setActiveSessionId(session.id); setMessages(session.messages.filter((message) => message.role !== "system").map(({ role, content, timestamp }) => ({ role, content, timestamp }))); }} className={`w-full rounded-2xl p-3 text-left transition hover:bg-[#635BFF]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635BFF] ${activeSessionId === session.id ? "bg-[#635BFF]/10" : ""}`}><p className="truncate text-xs font-bold text-slate-800 dark:text-white">{session.title}</p><p className="mt-0.5 truncate text-[11px] text-slate-400">{session.messages.length} messages</p></button>)}</div>}
+            <button onClick={clearChat} className="mx-auto mt-4 flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635BFF]"><Trash2 className="h-3.5 w-3.5" /> Clear chat history</button>
           </Card>
-        </div>
+        </aside>
 
-        {/* Right Column: Chat Interface & High-Yield Cards (8 cols) */}
-        <div className="lg:col-span-8 space-y-5">
-          {/* Top starter prompt chips */}
-          <Card className="p-5 rounded-3xl bg-white dark:bg-surface border-border shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                How can I help you ace your classes today?
-              </h3>
-              <Badge variant="success" size="sm">Ready</Badge>
-            </div>
-            <p className="text-xs text-slate-400">Choose a quick starter prompt or drop an assignment below</p>
-
-            <div className="grid sm:grid-cols-2 gap-2.5 pt-1">
-              {[
-                { title: "Explain Dijkstra's Algorithm", desc: "Break it down with a student-friendly GPS analogy", icon: "🗺️" },
-                { title: "Summarize 10-page syllabus PDF", desc: "Extract the 5 highest-yield exam concepts & formulas", icon: "📄" },
-                { title: "5 Organic Chemistry Practice Questions", desc: "Generate SN1 vs SN2 reaction mechanism scenarios", icon: "🧪" },
-                { title: "Debug Python Recursion Error", desc: "Fix 'maximum recursion depth exceeded' base case", icon: "💻" },
-              ].map((p) => (
-                <div
-                  key={p.title}
-                  onClick={() => setInput(p.title)}
-                  className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-900 border border-border cursor-pointer transition-colors space-y-1"
-                >
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                    <span>{p.icon}</span> <span>{p.title}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 leading-tight pl-6">{p.desc}</p>
-                </div>
-              ))}
-            </div>
+        <main className="space-y-5 lg:col-span-8">
+          <Card className="rounded-3xl border-border bg-white p-5 shadow-xs dark:bg-surface">
+            <div className="mb-3 flex items-center justify-between"><div><h2 className="text-sm font-extrabold text-slate-900 dark:text-white">{mode === "summarize" ? "Paste your notes" : "What are you studying today?"}</h2><p className="mt-1 text-xs text-slate-400">{mode === "summarize" ? "Turn long notes into a clear, high-yield revision guide." : "Your answer will stream into the chat."}</p></div><Badge variant="success" size="sm">{isLoading ? "Thinking" : "Ready"}</Badge></div>
+            {mode === "summarize" ? <textarea aria-label="Notes to summarize" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Paste lecture notes, a chapter, or an assignment here..." className="min-h-32 w-full resize-y rounded-2xl border border-border bg-slate-50 p-3 text-sm outline-none ring-[#635BFF] focus:ring-2 dark:bg-slate-900" /> : <div className="grid gap-2 sm:grid-cols-2">{starters.map((starter) => <button key={starter} onClick={() => setInput(starter)} className="rounded-2xl border border-border bg-slate-50 p-3 text-left text-xs font-semibold text-slate-700 transition hover:border-[#635BFF] hover:bg-[#635BFF]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635BFF] dark:bg-slate-900 dark:text-slate-200">{starter}</button>)}</div>}
           </Card>
 
-          {/* Dialogue area */}
-          <div className="space-y-4">
-            {/* User message */}
-            <div className="flex justify-end">
-              <div className="max-w-xl rounded-2xl rounded-tr-none bg-[#635BFF] text-white p-4 shadow-sm text-xs sm:text-sm font-medium leading-relaxed">
-                Can you explain the difference between Process and Thread in Operating Systems? I have a quiz in 2 hours!
-                <div className="text-[10px] text-white/70 text-right mt-1.5 font-normal">11:42 AM • Delivered</div>
-              </div>
-            </div>
-
-            {/* AI Assistant Answer Card */}
-            <div className="flex gap-3 items-start">
-              <div className="h-8 w-8 rounded-full bg-[#635BFF] text-white flex items-center justify-center shrink-0 mt-1 shadow-sm">
-                <Sparkles className="h-4 w-4" />
-              </div>
-
-              <Card className="flex-1 p-6 rounded-3xl bg-white dark:bg-surface border-border shadow-xs space-y-5">
-                <div className="flex items-center justify-between border-b border-border pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-extrabold text-slate-900 dark:text-white">Study Assistant</span>
-                    <span className="text-xs font-bold text-[#00D287] uppercase tracking-wider">• Concept Breakdown</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 font-semibold text-slate-500">
-                    <Copy className="h-3 w-3" /> Copy Answer
-                  </Button>
-                </div>
-
-                <p className="text-xs sm:text-sm font-bold text-[#635BFF]">
-                  Good luck on the quiz! Here&apos;s the easiest way to remember it:
-                </p>
-
-                {/* Apartment vs Roommates Analogy */}
-                <div className="p-4 rounded-2xl bg-[#E8FAF5] dark:bg-[#00D287]/15 border border-[#00D287]/30 text-xs space-y-1.5">
-                  <div className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
-                    🏢 The Apartment vs. Roommates Analogy
-                  </div>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                    Think of a <strong>Process</strong> like an entire <strong>Apartment</strong>, and <strong>Threads</strong> like <strong>Roommates</strong> living inside it. They share the common living room, fridge, and kitchen (shared memory space & address space), but each roommate has their own personal to-do list, clothes, and schedule (independent execution flow & registers)!
-                  </p>
-                </div>
-
-                {/* 3 Comparison Cards */}
-                <div className="grid sm:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-border space-y-1">
-                    <p className="font-bold text-[#0984E3]">⚙️ Memory Space</p>
-                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-tight">
-                      <strong>Process:</strong> Isolated address space. Cannot touch other processes without IPC.
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-tight">
-                      <strong>Thread:</strong> Shares memory & open files with siblings.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-border space-y-1">
-                    <p className="font-bold text-[#635BFF]">⚡ Creation Overhead</p>
-                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-tight">
-                      <strong>Process:</strong> Heavyweight. Expensive context switching and memory allocation.
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-tight">
-                      <strong>Thread:</strong> Lightweight. Fast context switching.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-border space-y-1">
-                    <p className="font-bold text-[#FF5252]">🛡️ Crash Isolation</p>
-                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-tight">
-                      <strong>Process:</strong> Safe. If one crashes, others remain unaffected.
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-tight">
-                      <strong>Thread:</strong> Risky. An unhandled segfault crashes the whole process.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Key takeaway */}
-                <div className="p-3.5 rounded-2xl bg-[#FEF5E7] dark:bg-[#FF9F43]/15 border border-[#FF9F43]/30 text-xs">
-                  <p className="font-extrabold text-amber-900 dark:text-amber-300">
-                    ⚡ Key Takeaway for Exam (High Yield)
-                  </p>
-                  <p className="text-amber-800 dark:text-amber-200 text-[11px] mt-0.5 leading-relaxed">
-                    Threads of the same process share <strong>Code, Data, and Heap</strong>, but maintain their own independent <strong>Stack, Program Counter (PC), and Registers</strong>.
-                  </p>
-                </div>
-
-                {/* Follow up chips */}
-                <div className="space-y-1.5 pt-2 border-t border-border">
-                  <span className="text-[11px] font-bold text-slate-400">Follow-up:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      "Give me a 3-question quick quiz 🎯",
-                      "Explain Context Switching in detail 🔀",
-                      "Show C pthread code snippet 💻",
-                    ].map((fu) => (
-                      <button
-                        key={fu}
-                        onClick={() => setInput(fu)}
-                        className="px-3 py-1 rounded-full bg-slate-100 hover:bg-[#635BFF]/10 hover:text-[#635BFF] dark:bg-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition-colors"
-                      >
-                        {fu}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-
-          {/* Bottom Chat Bar */}
-          <form onSubmit={handleSend} className="relative rounded-2xl bg-white dark:bg-surface border border-border shadow-md p-2 flex items-center gap-2">
-            <button type="button" className="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
-              <Paperclip className="h-4 w-4" />
-            </button>
-            <button type="button" className="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
-              <Mic className="h-4 w-4" />
-            </button>
-            <input
-              type="text"
-              placeholder="Type your homework question or paste syllabus notes..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-transparent text-xs sm:text-sm text-foreground placeholder:text-slate-400 focus:outline-none"
-            />
-            <Button
-              type="submit"
-              size="sm"
-              className="rounded-xl bg-[#635BFF] hover:bg-[#5046E5] text-white font-bold h-9 px-4 gap-1.5 shadow-xs"
-            >
-              Send <Send className="h-3.5 w-3.5" />
-            </Button>
-          </form>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 px-2">
-            <span>⚡ Powered by Gemini • Student Academic Mode</span>
-            <span>Markdown supported • Press Enter to send</span>
-          </div>
-        </div>
+          {messages.length === 0 && !isLoading ? <Card className="rounded-3xl border-dashed border-border bg-white p-10 text-center dark:bg-surface"><Bot className="mx-auto mb-3 h-10 w-10 text-[#635BFF]" /><h2 className="font-bold text-slate-800 dark:text-white">Your study space is ready</h2><p className="mt-1 text-sm text-slate-500">Ask a question or paste notes to begin.</p></Card> : <div className="space-y-4">{messages.map((message, index) => <div key={`${message.timestamp}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}><div className={`max-w-2xl rounded-2xl p-4 ${message.role === "user" ? "rounded-tr-none bg-[#635BFF] text-white" : "rounded-tl-none border border-border bg-white text-slate-700 shadow-xs dark:bg-surface dark:text-slate-200"}`}>{message.role === "assistant" ? <MarkdownText content={message.content || (isLoading ? "Thinking..." : "")} /> : <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>}{message.role === "assistant" && message.content && <button onClick={() => copyAnswer(message.content)} className="mt-3 flex items-center gap-1.5 text-xs text-slate-400 hover:text-[#635BFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635BFF]"><Copy className="h-3.5 w-3.5" /> {copied === message.content ? "Copied" : "Copy answer"}</button>}</div></div>)}</div>}
+          {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+          <form onSubmit={submit} className="flex items-end gap-2 rounded-3xl border border-border bg-white p-3 shadow-xs dark:bg-surface"><textarea aria-label="Study question" value={input} onChange={(event) => setInput(event.target.value)} disabled={mode === "summarize" || isLoading} placeholder={mode === "summarize" ? "Use the notes box above..." : "Ask your study assistant anything..."} className="min-h-10 flex-1 resize-none bg-transparent p-2 text-sm outline-none disabled:cursor-not-allowed" rows={2} /><Button aria-label={mode === "summarize" ? "Summarize notes" : "Send question"} type="submit" disabled={isLoading || (mode === "summarize" ? !notes.trim() : !input.trim())} className="h-10 rounded-xl bg-[#635BFF] px-4 text-white"><Send className="h-4 w-4" /></Button></form>
+          <p className="text-center text-xs text-slate-400">AI can make mistakes. Verify important academic information.</p>
+        </main>
       </div>
     </div>
   );
