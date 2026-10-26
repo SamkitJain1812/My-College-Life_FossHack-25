@@ -10,7 +10,7 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 h-16 w-full border-b border-border bg-white/90 dark:bg-surface/90 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between gap-4">
-      {/* Left: Campus Context & Semester Breadcrumb */}
+      {/* Left: App context */}
       <div className="flex items-center gap-3 min-w-0">
         <Link href="/" className="md:hidden flex items-center gap-2 shrink-0">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635BFF] text-white">
@@ -22,11 +22,7 @@ export function Topbar() {
             <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
               Overview
             </h1>
-            <span className="text-slate-400 text-xs sm:text-sm font-normal">• Spring Semester 2025</span>
           </div>
-          <p className="hidden sm:block text-[11px] text-slate-500 dark:text-slate-400">
-            Stanford Quad • 68°F • Sunny
-          </p>
         </div>
       </div>
 

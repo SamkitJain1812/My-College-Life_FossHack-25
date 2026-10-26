@@ -59,7 +59,7 @@ export function getGeminiClient(): GoogleGenAI {
 }
 
 export function getModelName(): string {
-  return process.env.GEMINI_MODEL || "gemini-3.8-flash";
+  return process.env.GEMINI_MODEL?.trim() || "gemini-flash-lite-latest";
 }
 
 export function errorResponse(error: unknown): Response {
@@ -68,5 +68,14 @@ export function errorResponse(error: unknown): Response {
   }
 
   console.error("AI route error:", error);
+  const providerStatus = typeof error === "object" && error !== null && "status" in error
+    ? Number(error.status)
+    : 0;
+  if (providerStatus === 401 || providerStatus === 403) {
+    return Response.json({ error: "The Gemini API key was rejected. Check GEMINI_API_KEY in your server environment." }, { status: 502 });
+  }
+  if (providerStatus === 429 || providerStatus === 503) {
+    return Response.json({ error: "Gemini is temporarily busy. Please try again in a few seconds." }, { status: 503 });
+  }
   return Response.json({ error: "The AI service is temporarily unavailable. Please try again shortly." }, { status: 502 });
 }
